@@ -9,8 +9,9 @@ let cachedServer:
   | (Required<Pick<ServerEnv, "NEXT_PUBLIC_SUPABASE_URL" | "NEXT_PUBLIC_SUPABASE_ANON_KEY">> & ServerEnv)
   | null = null
 
-export function getServerEnv() {
+function getServerEnvImpl() {
   if (cachedServer) return cachedServer
+
   const ep = (n: string) => process.env[n as keyof NodeJS.ProcessEnv]
 
   const snap: ServerEnv = {
@@ -36,11 +37,19 @@ export function getServerEnv() {
     throw new Error("Missing Supabase environment variables.")
   }
 
-  cachedServer = { ...snap, NEXT_PUBLIC_SUPABASE_URL: url, NEXT_PUBLIC_SUPABASE_ANON_KEY: key }
+  cachedServer = {
+    ...snap,
+    NEXT_PUBLIC_SUPABASE_URL: url,
+    NEXT_PUBLIC_SUPABASE_ANON_KEY: key,
+  }
+
   console.log(
     'ENV_CHECK {"level":"INFO","op":"getServerEnv","message":"Server env loaded","ts":"' +
       new Date().toISOString() +
       '"}',
   )
+
   return cachedServer
 }
+
+export { getServerEnvImpl as getServerEnv }
