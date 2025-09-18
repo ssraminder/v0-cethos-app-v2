@@ -1,0 +1,20 @@
+{
+  "name": "@cethos/ui",
+  "version": "1.0.0",
+  "private": true,
+  "main": "./src/index.ts",
+  "types": "./src/index.ts",
+  "dependencies": {
+    "react": "^18.0.0",
+    "react-dom": "^18.0.0",
+    "class-variance-authority": "^0.7.0",
+    "clsx": "^2.0.0",
+    "tailwind-merge": "^2.0.0",
+    "lucide-react": "^0.294.0"
+  },
+  "devDependencies": {
+    "typescript": "^5.0.0",
+    "@types/react": "^18.0.0",
+    "@types/react-dom": "^18.0.0"
+  }
+}
