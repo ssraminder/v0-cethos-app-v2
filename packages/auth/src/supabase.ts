@@ -1,19 +1,39 @@
 import { createBrowserClient, createServerClient } from "@supabase/ssr"
 import type { NextRequest, NextResponse } from "next/server"
-import { env } from "@cethos/config"
+
+function getEnv() {
+  // Try NEXT_PUBLIC_ prefixed versions first (client-side)
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || process.env.SUPABASE_URL
+  const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || process.env.SUPABASE_ANON_KEY
+
+  if (!supabaseUrl || !supabaseAnonKey) {
+    throw new Error(
+      `Missing Supabase environment variables. Please check your environment configuration.
+      Required: NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY
+      Or: SUPABASE_URL and SUPABASE_ANON_KEY as fallbacks`,
+    )
+  }
+
+  return {
+    NEXT_PUBLIC_SUPABASE_URL: supabaseUrl,
+    NEXT_PUBLIC_SUPABASE_ANON_KEY: supabaseAnonKey,
+  }
+}
 
 /**
  * Create a Supabase client for browser-side operations
  */
 export function createSupabaseBrowserClient() {
-  return createBrowserClient(env.SUPABASE_URL, env.SUPABASE_ANON_KEY)
+  const { NEXT_PUBLIC_SUPABASE_URL, NEXT_PUBLIC_SUPABASE_ANON_KEY } = getEnv()
+  return createBrowserClient(NEXT_PUBLIC_SUPABASE_URL, NEXT_PUBLIC_SUPABASE_ANON_KEY)
 }
 
 /**
  * Create a Supabase client for server-side operations
  */
 export function createSupabaseServerClient(request: NextRequest, response: NextResponse) {
-  return createServerClient(env.SUPABASE_URL, env.SUPABASE_ANON_KEY, {
+  const { NEXT_PUBLIC_SUPABASE_URL, NEXT_PUBLIC_SUPABASE_ANON_KEY } = getEnv()
+  return createServerClient(NEXT_PUBLIC_SUPABASE_URL, NEXT_PUBLIC_SUPABASE_ANON_KEY, {
     cookies: {
       get(name: string) {
         return request.cookies.get(name)?.value
@@ -34,7 +54,12 @@ export function createSupabaseServerClient(request: NextRequest, response: NextR
  * Create a Supabase service client for admin operations
  */
 export function createSupabaseServiceClient() {
-  return createBrowserClient(env.SUPABASE_URL, env.SUPABASE_SERVICE_ROLE_KEY)
+  const { NEXT_PUBLIC_SUPABASE_URL } = getEnv()
+  const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY
+  if (!serviceRoleKey) {
+    throw new Error("Missing SUPABASE_SERVICE_ROLE_KEY environment variable")
+  }
+  return createBrowserClient(NEXT_PUBLIC_SUPABASE_URL, serviceRoleKey)
 }
 
 /**

@@ -17,6 +17,7 @@
     "@cloudflare/workers-types": "latest",
     "@edge-runtime/vm": "latest",
     "@electric-sql/pglite": "latest",
+    "@google-cloud/documentai": "latest",
     "@hookform/resolvers": "^3.10.0",
     "@libsql/client": "latest",
     "@libsql/client-wasm": "latest",

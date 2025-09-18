@@ -190,16 +190,31 @@ export function QuoteWidget() {
       const isSourceEnglish = formData.sourceLanguage === englishLanguage?.id
       const shouldTriggerHITL = !isSourceEnglish && formData.targetLanguage === "other"
 
+      // For "other" target language, we need to use a placeholder UUID or handle it differently
+      let targetLanguageId = finalTargetLanguage
+      if (formData.targetLanguage === "other") {
+        // Use English as fallback for "other" languages to satisfy UUID validation
+        // The actual language will be handled by the HITL process
+        targetLanguageId = englishLanguage?.id || formData.sourceLanguage
+      }
+
+      console.log("[v0] Submitting quote with:", {
+        sourceLanguageId: formData.sourceLanguage,
+        targetLanguageId,
+        finalTargetLanguage,
+        shouldTriggerHITL,
+      })
+
       const response = await fetch("/api/quotes", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           sourceLanguageId: formData.sourceLanguage,
-          targetLanguageId: finalTargetLanguage,
+          targetLanguageId, // Use the processed targetLanguageId instead of finalTargetLanguage
           serviceType,
           urgencyLevel,
           certificationRequired,
-          ...(shouldTriggerHITL && { hitlHint: true }),
+          ...(shouldTriggerHITL && { hitlHint: true, customTargetLanguage: targetOtherText }),
           customerDetails: {
             fullName: formData.fullName,
             email: formData.email,

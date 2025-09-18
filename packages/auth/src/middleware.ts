@@ -1,42 +1,6 @@
 import { type NextRequest, NextResponse } from "next/server"
-import { createServerClient } from "@supabase/ssr"
+import { createSupabaseServerClient } from "./supabase"
 import { logger } from "@cethos/utils"
-
-/**
- * Create a Supabase client for middleware operations
- * Directly access environment variables since process.env validation doesn't work in middleware
- */
-function createSupabaseMiddlewareClient(request: NextRequest, response: NextResponse) {
-  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
-  const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
-
-  console.log("[v0] NEXT_PUBLIC_SUPABASE_URL:", supabaseUrl)
-  console.log("[v0] NEXT_PUBLIC_SUPABASE_ANON_KEY:", supabaseAnonKey)
-
-  if (!supabaseUrl || !supabaseAnonKey) {
-    console.log("[v0] Missing Supabase environment variables in middleware")
-    throw new Error("Missing Supabase environment variables")
-  }
-
-  console.log("[v0] Using supabaseUrl:", supabaseUrl)
-  console.log("[v0] Using supabaseAnonKey:", supabaseAnonKey ? "***" : "undefined")
-
-  return createServerClient(supabaseUrl, supabaseAnonKey, {
-    cookies: {
-      get(name: string) {
-        return request.cookies.get(name)?.value
-      },
-      set(name: string, value: string, options: any) {
-        request.cookies.set({ name, value, ...options })
-        response.cookies.set({ name, value, ...options })
-      },
-      remove(name: string, options: any) {
-        request.cookies.set({ name, value: "", ...options })
-        response.cookies.set({ name, value: "", ...options })
-      },
-    },
-  })
-}
 
 /**
  * Middleware to refresh Supabase session
@@ -48,9 +12,9 @@ export async function updateSession(request: NextRequest) {
     },
   })
 
-  try {
-    const supabase = createSupabaseMiddlewareClient(request, response)
+  const supabase = createSupabaseServerClient(request, response)
 
+  try {
     const {
       data: { user },
     } = await supabase.auth.getUser()
