@@ -1,12 +1,15 @@
 "use client"
 
+// Type definition
 export type PublicEnv = {
   NEXT_PUBLIC_SUPABASE_URL: string
   NEXT_PUBLIC_SUPABASE_ANON_KEY: string
 }
 
+// Cache variable
 let cached: PublicEnv | null = null
 
+// Function implementation
 function getPublicEnvImpl(): PublicEnv {
   if (cached) return cached
 
@@ -36,4 +39,7 @@ function getPublicEnvImpl(): PublicEnv {
   return cached
 }
 
-export { getPublicEnvImpl as getPublicEnv }
+// Named export
+export const getPublicEnv = getPublicEnvImpl
+
+// Alternative export syntax for maximum compatibility;

@@ -1,3 +1,4 @@
+// Type definition
 export type ServerEnv = {
   NEXT_PUBLIC_SUPABASE_URL?: string
   NEXT_PUBLIC_SUPABASE_ANON_KEY?: string
@@ -5,10 +6,12 @@ export type ServerEnv = {
   SUPABASE_ANON_KEY?: string
 }
 
+// Cache variable
 let cachedServer:
   | (Required<Pick<ServerEnv, "NEXT_PUBLIC_SUPABASE_URL" | "NEXT_PUBLIC_SUPABASE_ANON_KEY">> & ServerEnv)
   | null = null
 
+// Function implementation
 function getServerEnvImpl() {
   if (cachedServer) return cachedServer
 
@@ -52,4 +55,7 @@ function getServerEnvImpl() {
   return cachedServer
 }
 
-export { getServerEnvImpl as getServerEnv }
+// Named export
+export const getServerEnv = getServerEnvImpl
+
+// Alternative export syntax for maximum compatibility;
