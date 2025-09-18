@@ -6,9 +6,12 @@ const envSchema = z.object({
   CORS_ALLOWED_ORIGINS: z.string().default("https://cethos.com,https://*.cethos.com,https://*.vercel.app"),
 
   // Supabase
-  SUPABASE_URL: z.string().url(),
-  SUPABASE_ANON_KEY: z.string(),
-  SUPABASE_SERVICE_ROLE_KEY: z.string(),
+  SUPABASE_URL: z.string().url().optional(),
+  SUPABASE_ANON_KEY: z.string().optional(),
+  SUPABASE_SERVICE_ROLE_KEY: z.string().optional(),
+  // Use NEXT_PUBLIC_ prefixed versions as primary
+  NEXT_PUBLIC_SUPABASE_URL: z.string().url(),
+  NEXT_PUBLIC_SUPABASE_ANON_KEY: z.string(),
 
   // Google Cloud Platform
   GOOGLE_APPLICATION_CREDENTIALS_JSON: z.string(),
@@ -60,4 +63,12 @@ export function validateEnv(): Env {
   }
 }
 
-export const env = validateEnv()
+const rawEnv = validateEnv()
+
+export const env = {
+  ...rawEnv,
+  // Use NEXT_PUBLIC_ versions as primary, fallback to non-prefixed versions
+  SUPABASE_URL: rawEnv.NEXT_PUBLIC_SUPABASE_URL || rawEnv.SUPABASE_URL!,
+  SUPABASE_ANON_KEY: rawEnv.NEXT_PUBLIC_SUPABASE_ANON_KEY || rawEnv.SUPABASE_ANON_KEY!,
+  SUPABASE_SERVICE_ROLE_KEY: rawEnv.SUPABASE_SERVICE_ROLE_KEY!,
+}

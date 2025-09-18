@@ -9,6 +9,7 @@ import { Label } from "@/components/ui/label"
 import { Upload, FileText, Loader2, CheckCircle, ArrowLeft, ArrowRight } from "lucide-react"
 import { useDropzone } from "react-dropzone"
 import { cn } from "@/lib/utils"
+import { PhoneInput } from "@/components/ui/phone-input"
 
 interface Language {
   id: string
@@ -40,23 +41,26 @@ interface Quote {
   tax_amount: number
   word_count: number
   expires_at: string
-}
-
-interface QuoteFormData {
-  files: UploadedFile[]
-  sourceLanguage: string
-  targetLanguage: string
-  intendedUse: string
-  fullName: string
-  email: string
-  phone: string
+  billed_units?: number
+  billedUnits?: number
+  billed_rate?: number
+  billedRate?: number
+  files?: any[]
 }
 
 export function QuoteWidget() {
   const [currentStep, setCurrentStep] = useState(1)
   const [languages, setLanguages] = useState<Language[]>([])
   const [intendedUses, setIntendedUses] = useState<IntendedUse[]>([])
-  const [formData, setFormData] = useState<QuoteFormData>({
+  const [formData, setFormData] = useState<{
+    files: UploadedFile[]
+    sourceLanguage: string
+    targetLanguage: string
+    intendedUse: string
+    fullName: string
+    email: string
+    phone: string
+  }>({
     files: [],
     sourceLanguage: "",
     targetLanguage: "",
@@ -65,12 +69,13 @@ export function QuoteWidget() {
     email: "",
     phone: "",
   })
+  const [showTargetOtherInput, setShowTargetOtherInput] = useState(false)
+  const [targetOtherText, setTargetOtherText] = useState("")
   const [isLoading, setIsLoading] = useState(false)
   const [quote, setQuote] = useState<Quote | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [uploadStatus, setUploadStatus] = useState<string>("")
 
-  // Load languages and intended uses on component mount
   useEffect(() => {
     Promise.all([
       fetch("/api/languages").then((res) => res.json()),
@@ -105,7 +110,7 @@ export function QuoteWidget() {
       "image/jpeg": [".jpg", ".jpeg"],
       "image/png": [".png"],
     },
-    maxSize: 50 * 1024 * 1024, // 50MB
+    maxSize: 50 * 1024 * 1024,
   })
 
   const removeFile = (fileId: string) => {
@@ -113,6 +118,34 @@ export function QuoteWidget() {
       ...prev,
       files: prev.files.filter((f) => f.id !== fileId),
     }))
+  }
+
+  const handleSourceLanguageChange = (value: string) => {
+    const englishLanguage = languages.find((lang) => lang.name.toLowerCase() === "english")
+    const isSourceEnglish = value === englishLanguage?.id
+
+    setFormData((prev) => ({ ...prev, sourceLanguage: value }))
+
+    if (isSourceEnglish) {
+      setShowTargetOtherInput(false)
+      setTargetOtherText("")
+    } else {
+      const currentTarget = formData.targetLanguage
+      if (currentTarget && currentTarget !== englishLanguage?.id && currentTarget !== "other") {
+        setFormData((prev) => ({ ...prev, targetLanguage: "" }))
+      }
+    }
+  }
+
+  const handleTargetLanguageChange = (value: string) => {
+    setFormData((prev) => ({ ...prev, targetLanguage: value }))
+
+    if (value === "other") {
+      setShowTargetOtherInput(true)
+    } else {
+      setShowTargetOtherInput(false)
+      setTargetOtherText("")
+    }
   }
 
   const handleNext = () => {
@@ -135,12 +168,10 @@ export function QuoteWidget() {
     try {
       const selectedIntendedUse = intendedUses.find((use) => use.id === formData.intendedUse)
 
-      // Default mapping - you may need to adjust based on your intended uses
       let serviceType = "translation"
       const urgencyLevel = "standard"
       let certificationRequired = false
 
-      // Map intended use to service type and certification
       if (
         selectedIntendedUse?.name.toLowerCase().includes("certification") ||
         selectedIntendedUse?.name.toLowerCase().includes("certified")
@@ -154,15 +185,21 @@ export function QuoteWidget() {
         serviceType = "proofreading"
       }
 
+      const finalTargetLanguage = formData.targetLanguage === "other" ? targetOtherText : formData.targetLanguage
+      const englishLanguage = languages.find((lang) => lang.name.toLowerCase() === "english")
+      const isSourceEnglish = formData.sourceLanguage === englishLanguage?.id
+      const shouldTriggerHITL = !isSourceEnglish && formData.targetLanguage === "other"
+
       const response = await fetch("/api/quotes", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           sourceLanguageId: formData.sourceLanguage,
-          targetLanguageId: formData.targetLanguage,
+          targetLanguageId: finalTargetLanguage,
           serviceType,
           urgencyLevel,
           certificationRequired,
+          ...(shouldTriggerHITL && { hitlHint: true }),
           customerDetails: {
             fullName: formData.fullName,
             email: formData.email,
@@ -199,9 +236,11 @@ export function QuoteWidget() {
       case 1:
         return formData.files.length > 0
       case 2:
-        return formData.sourceLanguage && formData.targetLanguage && formData.intendedUse
+        const hasValidTarget =
+          formData.targetLanguage && (formData.targetLanguage !== "other" || targetOtherText.trim().length > 0)
+        return formData.sourceLanguage && hasValidTarget && formData.intendedUse
       case 3:
-        return formData.fullName && formData.email
+        return formData.fullName && formData.email && formData.phone.trim().length > 0
       default:
         return true
     }
@@ -209,11 +248,25 @@ export function QuoteWidget() {
 
   if (quote) {
     const sourceLanguage = languages.find((l) => l.id === formData.sourceLanguage)
-    const targetLanguage = languages.find((l) => l.id === formData.targetLanguage)
+    const targetLanguage =
+      formData.targetLanguage === "other"
+        ? { name: targetOtherText }
+        : languages.find((l) => l.id === formData.targetLanguage)
     const selectedIntendedUse = intendedUses.find((u) => u.id === formData.intendedUse)
 
-    const billablePages = quote.word_count ? Math.ceil(quote.word_count / 250) : 1
-    const ratePerPage = billablePages > 0 ? quote.base_amount / billablePages : 0
+    const billedUnits = quote.billed_units ?? quote.billedUnits ?? null
+    const billedRate = quote.billed_rate ?? quote.billedRate ?? null
+    const fileCount = quote.files?.length ?? formData.files.length
+
+    const formatCurrency = (n: number) =>
+      n.toLocaleString("en-CA", {
+        style: "currency",
+        currency: "CAD",
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2,
+      })
+    const formatUnits = (n: number) =>
+      n.toLocaleString("en-CA", { minimumFractionDigits: 0, maximumFractionDigits: 2 }) + " pages"
 
     return (
       <Card className="w-full max-w-2xl mx-auto">
@@ -226,7 +279,7 @@ export function QuoteWidget() {
         </CardHeader>
         <CardContent className="space-y-6">
           <div className="mt-4 border rounded-xl p-4 bg-white">
-            <h4 className="font-semibold mb-3">Files & Certifications</h4>
+            <h4 className="font-semibold mb-3">Files & Certifications ({fileCount})</h4>
             <div className="space-y-2">
               {formData.files.length > 0 ? (
                 formData.files.map((file) => (
@@ -275,31 +328,33 @@ export function QuoteWidget() {
             </div>
             <div className="space-y-2">
               <div className="text-sm font-medium text-gray-600">Billable Pages</div>
-              <div className="text-sm">{billablePages}</div>
+              <div className="text-sm">
+                {billedUnits !== null ? formatUnits(billedUnits) : Math.ceil(quote.word_count / 250)}
+              </div>
             </div>
             <div className="space-y-2">
               <div className="text-sm font-medium text-gray-600">Rate / Page (CAD)</div>
-              <div className="text-sm">${ratePerPage.toFixed(2)}</div>
+              <div className="text-sm">
+                {billedRate !== null
+                  ? formatCurrency(billedRate)
+                  : `$${(quote.base_amount / Math.ceil(quote.word_count / 250)).toFixed(2)}`}
+              </div>
             </div>
           </div>
 
           <div className="bg-gray-50 rounded-lg p-4 space-y-3">
             <div className="flex justify-between">
               <span>Subtotal</span>
-              <span>${(quote.base_amount + quote.certification_amount).toFixed(2)}</span>
+              <span>{formatCurrency(quote.base_amount + quote.certification_amount)}</span>
             </div>
             <div className="flex justify-between">
               <span>Tax</span>
-              <span>${quote.tax_amount.toFixed(2)}</span>
+              <span>{formatCurrency(quote.tax_amount)}</span>
             </div>
             <div className="border-t pt-3 flex justify-between font-bold text-lg">
               <span>Total</span>
-              <span>${quote.total_amount.toFixed(2)}</span>
+              <span>{formatCurrency(quote.total_amount)}</span>
             </div>
-          </div>
-
-          <div className="text-sm text-gray-600 text-center">
-            Quote expires on {new Date(quote.expires_at).toLocaleDateString()}
           </div>
 
           <div className="flex gap-3">
@@ -318,6 +373,8 @@ export function QuoteWidget() {
                   email: "",
                   phone: "",
                 })
+                setShowTargetOtherInput(false)
+                setTargetOtherText("")
               }}
             >
               New Quote
@@ -355,7 +412,6 @@ export function QuoteWidget() {
         </div>
       </CardHeader>
       <CardContent className="space-y-6">
-        {/* Step 1: Upload Files */}
         {currentStep === 1 && (
           <div className="space-y-4">
             <div className="text-center">
@@ -399,7 +455,6 @@ export function QuoteWidget() {
           </div>
         )}
 
-        {/* Step 2: Languages & Intended Use */}
         {currentStep === 2 && (
           <div className="space-y-4">
             <div className="text-center">
@@ -410,10 +465,7 @@ export function QuoteWidget() {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label>From Language *</Label>
-                <Select
-                  value={formData.sourceLanguage}
-                  onValueChange={(value) => setFormData((prev) => ({ ...prev, sourceLanguage: value }))}
-                >
+                <Select value={formData.sourceLanguage} onValueChange={handleSourceLanguageChange}>
                   <SelectTrigger>
                     <SelectValue placeholder="Select source language" />
                   </SelectTrigger>
@@ -429,23 +481,71 @@ export function QuoteWidget() {
 
               <div className="space-y-2">
                 <Label>To Language *</Label>
-                <Select
-                  value={formData.targetLanguage}
-                  onValueChange={(value) => setFormData((prev) => ({ ...prev, targetLanguage: value }))}
-                >
+                <Select value={formData.targetLanguage} onValueChange={handleTargetLanguageChange}>
                   <SelectTrigger>
                     <SelectValue placeholder="Select target language" />
                   </SelectTrigger>
                   <SelectContent>
-                    {languages.map((lang) => (
-                      <SelectItem key={lang.id} value={lang.id}>
-                        {lang.name} ({lang.native_name})
-                      </SelectItem>
-                    ))}
+                    {(() => {
+                      const englishLanguage = languages.find((lang) => lang.name.toLowerCase() === "english")
+                      const isSourceEnglish = formData.sourceLanguage === englishLanguage?.id
+
+                      if (isSourceEnglish) {
+                        return languages.map((lang) => (
+                          <SelectItem key={lang.id} value={lang.id}>
+                            {lang.name} ({lang.native_name})
+                          </SelectItem>
+                        ))
+                      } else {
+                        return [
+                          englishLanguage && (
+                            <SelectItem key={englishLanguage.id} value={englishLanguage.id}>
+                              {englishLanguage.name} ({englishLanguage.native_name})
+                            </SelectItem>
+                          ),
+                          <SelectItem key="other" value="other">
+                            Other
+                          </SelectItem>,
+                        ].filter(Boolean)
+                      }
+                    })()}
                   </SelectContent>
                 </Select>
+                {formData.targetLanguage === "other" && targetOtherText.trim().length === 0 && (
+                  <p className="text-sm text-red-600">Please specify the target language.</p>
+                )}
               </div>
             </div>
+
+            {showTargetOtherInput && (
+              <div className="space-y-2">
+                <Label>Target Language *</Label>
+                <Input
+                  placeholder="Enter target language"
+                  value={targetOtherText}
+                  onChange={(e) => setTargetOtherText(e.target.value)}
+                  aria-describedby="target-other-help"
+                />
+                <p id="target-other-help" className="text-sm text-muted-foreground">
+                  If your target language is not listed, type it here.
+                </p>
+              </div>
+            )}
+
+            {(() => {
+              const englishLanguage = languages.find((lang) => lang.name.toLowerCase() === "english")
+              const isSourceEnglish = formData.sourceLanguage === englishLanguage?.id
+              const isTargetOther = formData.targetLanguage === "other"
+
+              if (!isSourceEnglish && isTargetOther) {
+                return (
+                  <div className="p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                    <p className="text-sm text-blue-600">A human review will be requested for this language pair.</p>
+                  </div>
+                )
+              }
+              return null
+            })()}
 
             <div className="space-y-2">
               <Label>Intended Use *</Label>
@@ -468,7 +568,6 @@ export function QuoteWidget() {
           </div>
         )}
 
-        {/* Step 3: Customer Details */}
         {currentStep === 3 && (
           <div className="space-y-4">
             <div className="text-center">
@@ -497,19 +596,23 @@ export function QuoteWidget() {
               </div>
 
               <div className="space-y-2">
-                <Label>Phone (Optional)</Label>
-                <Input
-                  type="tel"
-                  value={formData.phone}
-                  onChange={(e) => setFormData((prev) => ({ ...prev, phone: e.target.value }))}
-                  placeholder="Enter your phone number"
+                <Label>Phone number *</Label>
+                <PhoneInput
+                  defaultCountry="CA"
+                  value={formData.phone ?? ""}
+                  onChange={(val) => setFormData({ ...formData, phone: val })}
+                  inputClassName="w-full"
+                  placeholder="Phone number"
                 />
+                <p className="text-sm text-muted-foreground">Example: (201) 555-0123</p>
+                {formData.phone.trim().length === 0 && (
+                  <p className="text-sm text-red-600">Phone number is required.</p>
+                )}
               </div>
             </div>
           </div>
         )}
 
-        {/* Step 4: Review & Submit */}
         {currentStep === 4 && (
           <div className="space-y-4">
             <div className="text-center">
@@ -523,7 +626,9 @@ export function QuoteWidget() {
               </div>
               <div>
                 <strong>Languages:</strong> {languages.find((l) => l.id === formData.sourceLanguage)?.name} →{" "}
-                {languages.find((l) => l.id === formData.targetLanguage)?.name}
+                {formData.targetLanguage === "other"
+                  ? targetOtherText
+                  : languages.find((l) => l.id === formData.targetLanguage)?.name}
               </div>
               <div>
                 <strong>Intended Use:</strong> {intendedUses.find((u) => u.id === formData.intendedUse)?.name}
@@ -547,7 +652,6 @@ export function QuoteWidget() {
           </div>
         )}
 
-        {/* Navigation Buttons */}
         <div className="flex justify-between">
           <Button
             variant="outline"
