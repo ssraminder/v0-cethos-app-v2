@@ -1,3 +1,6 @@
+export const runtime = "nodejs"
+export const dynamic = "force-dynamic"
+
 import { NextResponse } from "next/server"
 import { initDocAI } from "@/lib/docai"
 
@@ -22,7 +25,7 @@ export async function GET() {
       google_credentials: !!process.env.GOOGLE_APPLICATION_CREDENTIALS_JSON,
       gcs_bucket: !!process.env.GCS_BUCKET,
       ocr_max_text_length: process.env.OCR_MAX_TEXT_LENGTH || "500000",
-      download_timeout_ms: process.env.DOWNLOAD_TIMEOUT_MS || "30000",
+      download_timeout_ms: process.env.DOWNLOAD_TIMEOUT_MS || "60000",
     },
     docai_client: null as any,
   }

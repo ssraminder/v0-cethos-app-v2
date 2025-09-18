@@ -1,9 +1,9 @@
 import { type NextRequest, NextResponse } from "next/server"
-import { getEnv } from "@/lib/env"
+import { getServerEnv } from "@/lib/env.server"
 
 export async function GET(request: NextRequest) {
   try {
-    const e = getEnv()
+    const e = getServerEnv()
     return NextResponse.json({
       ok: true,
       supabaseUrlPresent: !!e.NEXT_PUBLIC_SUPABASE_URL,

@@ -20,7 +20,7 @@ function log(level: "INFO" | "ERROR", op: string, data: any) {
   console.log(`PHASE1_OCR ${JSON.stringify(logEntry)}`)
 }
 
-async function downloadFile(url: string, timeoutMs = 30000): Promise<Buffer> {
+async function downloadFile(url: string, timeoutMs = 60000): Promise<Buffer> {
   const controller = new AbortController()
   const timeoutId = setTimeout(() => controller.abort(), timeoutMs)
 
@@ -47,6 +47,9 @@ async function downloadFile(url: string, timeoutMs = 30000): Promise<Buffer> {
     throw error
   }
 }
+
+export const runtime = "nodejs"
+export const dynamic = "force-dynamic"
 
 export async function POST(request: NextRequest) {
   try {
@@ -79,7 +82,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json(error, { status: 500 })
     }
 
-    const downloadTimeoutMs = Number.parseInt(process.env.DOWNLOAD_TIMEOUT_MS || "30000")
+    const downloadTimeoutMs = Number.parseInt(process.env.DOWNLOAD_TIMEOUT_MS || "60000")
     const results = []
     let totalPages = 0
     let totalTokens = 0

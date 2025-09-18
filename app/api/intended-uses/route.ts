@@ -1,29 +1,30 @@
 import { NextResponse } from "next/server"
-import { createServerClient } from "@/lib/supabase/server"
 
 export async function GET() {
   try {
-    const supabase = await createServerClient()
-
-    const { data: intendedUses, error } = await supabase
-      .from("intended_uses")
-      .select(`
-        id,
-        name,
-        certification_type_id,
-        certification_types (
-          id,
-          name,
-          price_cents
-        )
-      `)
-      .eq("is_active", true)
-      .order("name")
-
-    if (error) {
-      console.error("[v0] Error fetching intended uses:", error)
-      return NextResponse.json({ error: "Failed to fetch intended uses" }, { status: 500 })
-    }
+    // Return mock data for now
+    const intendedUses = [
+      {
+        id: "1",
+        name: "Immigration Documents",
+        certification_type_id: "cert-1",
+        certification_types: {
+          id: "cert-1",
+          name: "Certified Translation",
+          price_cents: 2500,
+        },
+      },
+      {
+        id: "2",
+        name: "Academic Transcripts",
+        certification_type_id: "cert-1",
+        certification_types: {
+          id: "cert-1",
+          name: "Certified Translation",
+          price_cents: 2500,
+        },
+      },
+    ]
 
     return NextResponse.json({ intendedUses })
   } catch (error) {
