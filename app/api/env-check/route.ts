@@ -1,5 +1,5 @@
 import { type NextRequest, NextResponse } from "next/server"
-import { getServerEnv } from "@/lib/env.server"
+import { getServerEnv } from "@/lib/environment.server"
 
 export async function GET(request: NextRequest) {
   try {

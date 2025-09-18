@@ -1,5 +1,5 @@
 import { createClient } from "@supabase/supabase-js"
-import { getServerEnv } from "@/lib/env.server"
+import { getServerEnv } from "@/lib/environment.server"
 
 // Export createSupabaseClient function to match import pattern
 export async function createServerClient() {

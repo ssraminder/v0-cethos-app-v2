@@ -1,4 +1,3 @@
-// Type definition
 export type ServerEnv = {
   NEXT_PUBLIC_SUPABASE_URL?: string
   NEXT_PUBLIC_SUPABASE_ANON_KEY?: string
@@ -6,12 +5,11 @@ export type ServerEnv = {
   SUPABASE_ANON_KEY?: string
 }
 
-// Cache variable
 let cachedServer:
   | (Required<Pick<ServerEnv, "NEXT_PUBLIC_SUPABASE_URL" | "NEXT_PUBLIC_SUPABASE_ANON_KEY">> & ServerEnv)
   | null = null
 
-export function getServerEnv() {
+function getServerEnvImpl() {
   if (cachedServer) return cachedServer
 
   const ep = (n: string) => process.env[n as keyof NodeJS.ProcessEnv]
@@ -53,3 +51,6 @@ export function getServerEnv() {
 
   return cachedServer
 }
+
+// Multiple export patterns for maximum compatibility
+export const getServerEnv = getServerEnvImpl

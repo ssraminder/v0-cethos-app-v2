@@ -1,7 +1,7 @@
 import { createClient } from "@supabase/supabase-js"
 import type { NextRequest, NextResponse } from "next/server"
-import { getServerEnv } from "@/lib/env.server"
-import { getPublicEnv } from "@/lib/env.client"
+import { getServerEnv } from "@/lib/environment.server"
+import { getPublicEnv } from "@/lib/environment.client"
 
 /**
  * Create a Supabase client for browser-side operations
