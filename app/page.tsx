@@ -1,7 +1,6 @@
 "use client"
 
 import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { QuoteWidget } from "@/components/quote-widget"
 import { useEffect, useState } from "react"
 import { createClient } from "@/lib/supabase/client"
@@ -70,17 +69,9 @@ export default function HomePage() {
           </p>
         </div>
 
-        <Card>
-          <CardHeader>
-            <CardTitle>Get Your Quote</CardTitle>
-            <CardDescription>
-              Upload your documents and receive an instant quote for certified translation services
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <QuoteWidget />
-          </CardContent>
-        </Card>
+        <div className="max-w-2xl mx-auto">
+          <QuoteWidget />
+        </div>
 
         {user && (
           <div className="flex justify-center space-x-4">

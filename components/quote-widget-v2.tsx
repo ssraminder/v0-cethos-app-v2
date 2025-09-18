@@ -208,38 +208,91 @@ export function QuoteWidget() {
   }
 
   if (quote) {
+    const sourceLanguage = languages.find((l) => l.id === formData.sourceLanguage)
+    const targetLanguage = languages.find((l) => l.id === formData.targetLanguage)
+    const selectedIntendedUse = intendedUses.find((u) => u.id === formData.intendedUse)
+
+    const billablePages = quote.word_count ? Math.ceil(quote.word_count / 250) : 1
+    const ratePerPage = billablePages > 0 ? quote.base_amount / billablePages : 0
+
     return (
       <Card className="w-full max-w-2xl mx-auto">
         <CardHeader className="text-center">
           <div className="mx-auto w-12 h-12 bg-green-100 rounded-full flex items-center justify-center mb-4">
             <CheckCircle className="w-6 h-6 text-green-600" />
           </div>
-          <CardTitle className="text-2xl">Quote Generated</CardTitle>
+          <CardTitle className="text-2xl">Review Your Quote</CardTitle>
           <CardDescription>Quote #{quote.quote_number}</CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
-          <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-            <p className="text-sm text-blue-800 text-center">
-              <strong>This quote is for a certified translation.</strong>
-            </p>
+          <div className="mt-4 border rounded-xl p-4 bg-white">
+            <h4 className="font-semibold mb-3">Files & Certifications</h4>
+            <div className="space-y-2">
+              {formData.files.length > 0 ? (
+                formData.files.map((file) => (
+                  <div key={file.id} className="flex items-center justify-between py-2 border-b last:border-b-0">
+                    <div className="flex items-center gap-3">
+                      <FileText className="h-4 w-4 text-gray-500" />
+                      <div>
+                        <p className="font-medium text-sm">
+                          {file.file.name.length > 30 ? `${file.file.name.substring(0, 30)}...` : file.file.name}
+                        </p>
+                        <p className="text-xs text-gray-500">
+                          {(file.file.size / 1024 / 1024).toFixed(1)} MB •{" "}
+                          {file.file.type.split("/")[1]?.toUpperCase() || "FILE"}
+                        </p>
+                      </div>
+                    </div>
+                    <div className="text-right">
+                      <span className="inline-flex items-center rounded-full border px-2 py-0.5 text-xs text-gray-600">
+                        Pending analysis
+                      </span>
+                    </div>
+                  </div>
+                ))
+              ) : (
+                <div className="py-2 text-sm text-gray-500">(No files attached)</div>
+              )}
+            </div>
+            <div className="mt-3 text-right">
+              <span className="text-sm font-medium">
+                Certifications Required: <strong>1</strong>
+              </span>
+              <span className="text-xs text-gray-500 ml-1">(default; will update after analysis)</span>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <div className="text-sm font-medium text-gray-600">Languages</div>
+              <div className="text-sm">
+                {sourceLanguage?.name || "Unknown"} → {targetLanguage?.name || "Unknown"}
+              </div>
+            </div>
+            <div className="space-y-2">
+              <div className="text-sm font-medium text-gray-600">Intended Use</div>
+              <div className="text-sm">{selectedIntendedUse?.name || "Unknown"}</div>
+            </div>
+            <div className="space-y-2">
+              <div className="text-sm font-medium text-gray-600">Billable Pages</div>
+              <div className="text-sm">{billablePages}</div>
+            </div>
+            <div className="space-y-2">
+              <div className="text-sm font-medium text-gray-600">Rate / Page (CAD)</div>
+              <div className="text-sm">${ratePerPage.toFixed(2)}</div>
+            </div>
           </div>
 
           <div className="bg-gray-50 rounded-lg p-4 space-y-3">
             <div className="flex justify-between">
-              <span>Base Translation ({quote.word_count} words)</span>
-              <span>${quote.base_amount.toFixed(2)}</span>
+              <span>Subtotal</span>
+              <span>${(quote.base_amount + quote.certification_amount).toFixed(2)}</span>
             </div>
-            {quote.certification_amount > 0 && (
-              <div className="flex justify-between">
-                <span>Certification Fee</span>
-                <span>${quote.certification_amount.toFixed(2)}</span>
-              </div>
-            )}
             <div className="flex justify-between">
               <span>Tax</span>
               <span>${quote.tax_amount.toFixed(2)}</span>
             </div>
-            <div className="border-t pt-3 flex justify-between font-semibold text-lg">
+            <div className="border-t pt-3 flex justify-between font-bold text-lg">
               <span>Total</span>
               <span>${quote.total_amount.toFixed(2)}</span>
             </div>
